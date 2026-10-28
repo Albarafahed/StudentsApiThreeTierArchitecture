@@ -1,0 +1,16 @@
+## Visual Studio / .NET
+bin/
+obj/
+*.user
+*.suo
+**/.vs/
+.VS/
+*.pdb
+
+## Database backups (لا ترفع أبداً)
+*.bak
+*.mdf
+*.ldf
+
+## Misc
+*.log
