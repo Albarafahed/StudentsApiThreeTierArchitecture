@@ -9,7 +9,7 @@ namespace StudentDataAccessLayer
 {
     public class StudentData
     {
-        static string _connectionString = "Server=localhost;Database=StudentsDB;User Id=sa;Password=sa;Encrypt=False;TrustServerCertificate=True;Connection Timeout=30;";
+        static string _connectionString = "Server=localhost\\SQLEXPRESS;Database=StudentsDB;Trusted_Connection=True;TrustServerCertificate=True;";
 
         public static List<StudentDTO> GetAllStudents()
         {
