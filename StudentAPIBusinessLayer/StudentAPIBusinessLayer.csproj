@@ -7,6 +7,11 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="BCrypt.Net-Next" Version="4.2.0" />
+    <PackageReference Include="byCrookie.NugetSdk" Version="1.0.7" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\StudentDataAccessLayerStudentDataAccessLayer\StudentDataAccessLayer.csproj" />
   </ItemGroup>
 

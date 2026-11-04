@@ -11,13 +11,16 @@ namespace StudentAPIBusinessLayer
 
         public StudentDTO SDTO
         {
-            get { return (new StudentDTO(this.ID, this.Name, this.Age, this.Grade)); }
+            get { return (new StudentDTO(this.ID, this.Name, this.Age, this.Grade, this.Email, this.PasswordHash, this.Role)); }
         }
 
         public int ID { get; set; }
         public string Name { get; set; }
         public int Age { get; set; }
         public int Grade { get; set; }
+        public string? Email { get; set; }
+        public string? PasswordHash { get; set; }
+        public string? Role { get; set; }
 
         public Student(StudentDTO SDTO, enMode cMode = enMode.AddNew)
 
@@ -26,6 +29,9 @@ namespace StudentAPIBusinessLayer
             this.Name = SDTO.Name;
             this.Age = SDTO.Age;
             this.Grade = SDTO.Grade;
+            this.Email = SDTO.Email;
+            this.PasswordHash = SDTO.PasswordHash;
+            this.Role = SDTO.Role;
 
             Mode = cMode;
         }
@@ -38,7 +44,10 @@ namespace StudentAPIBusinessLayer
 
             return (this.ID != -1);
         }
-
+        public static StudentDTO? Login(string email)
+        {
+            return StudentData.Login(email);
+        }
         private bool _UpdateStudent()
         {
             return StudentData.UpdateStudent(SDTO);

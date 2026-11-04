@@ -32,8 +32,19 @@ namespace StudentDataAccessLayer
                                 reader.GetInt32(reader.GetOrdinal("Id")),
                                 reader.GetString(reader.GetOrdinal("Name")),
                                 reader.GetInt32(reader.GetOrdinal("Age")),
-                                reader.GetInt32(reader.GetOrdinal("Grade"))
-                            ));
+                                reader.GetInt32(reader.GetOrdinal("Grade")),
+                              reader.IsDBNull(reader.GetOrdinal("Email"))
+    ?                       string.Empty
+                            : reader.GetString(reader.GetOrdinal("Email")),
+
+                        reader.IsDBNull(reader.GetOrdinal("PasswordHash"))
+                            ? string.Empty
+                            : reader.GetString(reader.GetOrdinal("PasswordHash")),
+
+                        reader.IsDBNull(reader.GetOrdinal("Role"))
+                            ? string.Empty
+                            : reader.GetString(reader.GetOrdinal("Role"))
+                                                    ));
                         }
                     }
                 }
@@ -65,7 +76,18 @@ namespace StudentDataAccessLayer
                                 reader.GetInt32(reader.GetOrdinal("Id")),
                                 reader.GetString(reader.GetOrdinal("Name")),
                                 reader.GetInt32(reader.GetOrdinal("Age")),
-                                reader.GetInt32(reader.GetOrdinal("Grade"))
+                                reader.GetInt32(reader.GetOrdinal("Grade")),
+                               reader.IsDBNull(reader.GetOrdinal("Email"))
+    ? string.Empty
+    : reader.GetString(reader.GetOrdinal("Email")),
+
+reader.IsDBNull(reader.GetOrdinal("PasswordHash"))
+    ? string.Empty
+    : reader.GetString(reader.GetOrdinal("PasswordHash")),
+
+reader.IsDBNull(reader.GetOrdinal("Role"))
+    ? string.Empty
+    : reader.GetString(reader.GetOrdinal("Role"))
                             ));
                         }
                     }
@@ -103,7 +125,7 @@ namespace StudentDataAccessLayer
             return averageGrade;
         }
 
-        public static StudentDTO GetStudentById(int studentId)
+        public static StudentDTO? GetStudentById(int studentId)
         {
             using (var connection = new SqlConnection(_connectionString))
             using (var command = new SqlCommand("SP_GetStudentById", connection))
@@ -117,12 +139,15 @@ namespace StudentDataAccessLayer
                     if (reader.Read())
                     {
                         return new StudentDTO
-                        (
-                            reader.GetInt32(reader.GetOrdinal("Id")),
-                            reader.GetString(reader.GetOrdinal("Name")),
-                            reader.GetInt32(reader.GetOrdinal("Age")),
-                            reader.GetInt32(reader.GetOrdinal("Grade"))
-                        );
+                       (
+                           reader.GetInt32(reader.GetOrdinal("Id")),
+                           reader.GetString(reader.GetOrdinal("Name")),
+                           reader.GetInt32(reader.GetOrdinal("Age")),
+                           reader.GetInt32(reader.GetOrdinal("Grade")),
+                           reader.IsDBNull(reader.GetOrdinal("Email")) ? null : reader.GetString(reader.GetOrdinal("Email")),
+                           reader.IsDBNull(reader.GetOrdinal("PasswordHash")) ? null : reader.GetString(reader.GetOrdinal("PasswordHash")),
+                           reader.IsDBNull(reader.GetOrdinal("Role")) ? null : reader.GetString(reader.GetOrdinal("Role"))
+                       );
                     }
                     else
                     {
@@ -143,6 +168,9 @@ namespace StudentDataAccessLayer
                 command.Parameters.AddWithValue("@Name", StudentDTO.Name);
                 command.Parameters.AddWithValue("@Age", StudentDTO.Age);
                 command.Parameters.AddWithValue("@Grade", StudentDTO.Grade);
+                command.Parameters.AddWithValue("@Email", StudentDTO.Email);
+                command.Parameters.AddWithValue("@PasswordHash", StudentDTO.PasswordHash);
+                command.Parameters.AddWithValue("@Role", StudentDTO.Role);
                 var outputIdParam = new SqlParameter("@NewStudentId", SqlDbType.Int)
                 {
                     Direction = ParameterDirection.Output
@@ -167,6 +195,9 @@ namespace StudentDataAccessLayer
                 command.Parameters.AddWithValue("@Name", StudentDTO.Name);
                 command.Parameters.AddWithValue("@Age", StudentDTO.Age);
                 command.Parameters.AddWithValue("@Grade", StudentDTO.Grade);
+                command.Parameters.AddWithValue("@Email", StudentDTO.Email);
+                command.Parameters.AddWithValue("@PasswordHash", StudentDTO.PasswordHash);
+                command.Parameters.AddWithValue("@Role", StudentDTO.Role);
 
                 connection.Open();
                 command.ExecuteNonQuery();
@@ -190,6 +221,38 @@ namespace StudentDataAccessLayer
                 return (rowsAffected == 1);
 
 
+            }
+        }
+
+        public static StudentDTO? Login(string email)
+        {
+            using (var connection = new SqlConnection(_connectionString))
+            using (var command = new SqlCommand("SP_Login", connection))
+            {
+                command.CommandType = CommandType.StoredProcedure;
+                command.Parameters.AddWithValue("@Email", email);
+              
+                connection.Open();
+                using (var reader = command.ExecuteReader())
+                {
+                    if (reader.Read())
+                    {
+                        return new StudentDTO
+                        (
+                            reader.GetInt32(reader.GetOrdinal("Id")),
+                            reader.GetString(reader.GetOrdinal("Name")),
+                            reader.GetInt32(reader.GetOrdinal("Age")),
+                            reader.GetInt32(reader.GetOrdinal("Grade")),
+                            reader.IsDBNull(reader.GetOrdinal("Email")) ? null : reader.GetString(reader.GetOrdinal("Email")),
+                            reader.IsDBNull(reader.GetOrdinal("PasswordHash")) ? null : reader.GetString(reader.GetOrdinal("PasswordHash")),
+                            reader.IsDBNull(reader.GetOrdinal("Role")) ? null : reader.GetString(reader.GetOrdinal("Role"))
+                        );
+                    }
+                    else
+                    {
+                        return null;
+                    }   
+                }
             }
         }
     }
