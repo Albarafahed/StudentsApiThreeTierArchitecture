@@ -65,23 +65,14 @@ namespace StudentApi.Controllers
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public ActionResult<StudentDTO> GetStudentById(int id)
+        public async Task<ActionResult<StudentDTO>> GetStudentById(int id, [FromServices] IAuthorizationService authorizationService)
         {
 
             if (id < 1)
             {
                 return BadRequest($"Not accepted ID {id}");
             }
-            int userID; int.TryParse( User.FindFirstValue(System.Security.Claims.ClaimTypes.NameIdentifier),out userID);
-            var userRole = User.FindFirstValue(System.Security.Claims.ClaimTypes.Role);
           
-
-            bool IsAdmin = userRole == "Admin";
-            if (!IsAdmin && userID != id)
-            {
-                return Forbid();
-            }
-
             StudentAPIBusinessLayer.Student ? student = StudentAPIBusinessLayer.Student.Find(id);
 
             if (student == null)
@@ -89,7 +80,17 @@ namespace StudentApi.Controllers
                 return NotFound($"Student with ID {id} not found.");
             }
 
-          
+
+            var authResult = await authorizationService.AuthorizeAsync(
+                  User,
+                  id,
+                  "StudentOwnerOrAdmin");
+
+            // If the policy evaluation failed, the user is authenticated
+            // but not authorized to access this resource.
+            // This correctly returns HTTP 403 Forbidden.
+            if (!authResult.Succeeded)
+                return Forbid(); // 403 Forbidden
 
             //here we get only the DTO object to send it back.
             StudentDTO SDTO = student.SDTO;
