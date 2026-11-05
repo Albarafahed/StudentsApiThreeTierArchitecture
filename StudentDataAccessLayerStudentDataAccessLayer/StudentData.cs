@@ -77,17 +77,9 @@ namespace StudentDataAccessLayer
                                 reader.GetString(reader.GetOrdinal("Name")),
                                 reader.GetInt32(reader.GetOrdinal("Age")),
                                 reader.GetInt32(reader.GetOrdinal("Grade")),
-                               reader.IsDBNull(reader.GetOrdinal("Email"))
-    ? string.Empty
-    : reader.GetString(reader.GetOrdinal("Email")),
-
-reader.IsDBNull(reader.GetOrdinal("PasswordHash"))
-    ? string.Empty
-    : reader.GetString(reader.GetOrdinal("PasswordHash")),
-
-reader.IsDBNull(reader.GetOrdinal("Role"))
-    ? string.Empty
-    : reader.GetString(reader.GetOrdinal("Role"))
+                                reader.GetString(reader.GetOrdinal("Email")),
+                                reader.GetString(reader.GetOrdinal("PasswordHash")),
+                                reader.GetString(reader.GetOrdinal("Role"))
                             ));
                         }
                     }
@@ -144,9 +136,9 @@ reader.IsDBNull(reader.GetOrdinal("Role"))
                            reader.GetString(reader.GetOrdinal("Name")),
                            reader.GetInt32(reader.GetOrdinal("Age")),
                            reader.GetInt32(reader.GetOrdinal("Grade")),
-                           reader.IsDBNull(reader.GetOrdinal("Email")) ? null : reader.GetString(reader.GetOrdinal("Email")),
-                           reader.IsDBNull(reader.GetOrdinal("PasswordHash")) ? null : reader.GetString(reader.GetOrdinal("PasswordHash")),
-                           reader.IsDBNull(reader.GetOrdinal("Role")) ? null : reader.GetString(reader.GetOrdinal("Role"))
+                          reader.GetString(reader.GetOrdinal("Email")),
+                            reader.GetString(reader.GetOrdinal("PasswordHash")),
+                             reader.GetString(reader.GetOrdinal("Role"))
                        );
                     }
                     else
@@ -243,9 +235,9 @@ reader.IsDBNull(reader.GetOrdinal("Role"))
                             reader.GetString(reader.GetOrdinal("Name")),
                             reader.GetInt32(reader.GetOrdinal("Age")),
                             reader.GetInt32(reader.GetOrdinal("Grade")),
-                            reader.IsDBNull(reader.GetOrdinal("Email")) ? null : reader.GetString(reader.GetOrdinal("Email")),
-                            reader.IsDBNull(reader.GetOrdinal("PasswordHash")) ? null : reader.GetString(reader.GetOrdinal("PasswordHash")),
-                            reader.IsDBNull(reader.GetOrdinal("Role")) ? null : reader.GetString(reader.GetOrdinal("Role"))
+                          reader.GetString(reader.GetOrdinal("Email")),
+                            reader.GetString(reader.GetOrdinal("PasswordHash")),
+                             reader.GetString(reader.GetOrdinal("Role"))
                         );
                     }
                     else

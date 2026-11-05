@@ -18,9 +18,9 @@ namespace StudentAPIBusinessLayer
         public string Name { get; set; }
         public int Age { get; set; }
         public int Grade { get; set; }
-        public string? Email { get; set; }
-        public string? PasswordHash { get; set; }
-        public string? Role { get; set; }
+        public string Email { get; set; }
+        public string PasswordHash { get; set; }
+        public string Role { get; set; }
 
         public Student(StudentDTO SDTO, enMode cMode = enMode.AddNew)
 
@@ -70,10 +70,10 @@ namespace StudentAPIBusinessLayer
             return StudentData.GetAverageGrade();
         }
 
-        public static Student Find(int ID)
+        public static Student? Find(int ID)
         {
 
-            StudentDTO SDTO = StudentData.GetStudentById(ID);
+            StudentDTO? SDTO = StudentData.GetStudentById(ID);
 
             if (SDTO != null)
             //we return new object of that student with the right data

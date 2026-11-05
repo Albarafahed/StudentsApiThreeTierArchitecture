@@ -1,32 +1,29 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using StudentDataAccessLayer;
 
 //using StudentApi.Models;
 //using StudentApi.DataSimulation;
 using System.Collections.Generic;
+using System.Security.Claims;
 
 
 namespace StudentApi.Controllers
 {
+    [Authorize]
     [ApiController] // Marks the class as a Web API controller with enhanced features.
                     //  [Route("[controller]")] // Sets the route for this controller to "students", based on the controller name.
     [Route("api/Students")]
 
     public class StudentsController : ControllerBase // Declare the controller class inheriting from ControllerBase.
     {
-
+        [Authorize(Roles = "Admin")] // Restrict access to this endpoint to users with the "Admin" role.
         [HttpGet("All", Name = "GetAllStudents")] // Marks this method to respond to HTTP GET requests.
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-
-        //here we used StudentDTO
         public ActionResult<IEnumerable<StudentDTO>> GetAllStudents() // Define a method to get all students.
         {
-            //if (StudentDataSimulation.StudentsList.Count == 0) 
-            //{
-            //    return NotFound("No Students Found!");
-            //}
-            //return Ok(StudentDataSimulation.StudentsList); // Returns the list of students.
+           
 
             List<StudentDTO> StudentsList = StudentAPIBusinessLayer.Student.GetAllStudents();
             if (StudentsList.Count == 0)
@@ -37,16 +34,13 @@ namespace StudentApi.Controllers
 
         }
 
+        [AllowAnonymous] // Allow access to this endpoint without authentication.
         [HttpGet("Passed", Name = "GetPassedStudents")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-
-        // Method to get all students who passed
         public ActionResult<IEnumerable<StudentDTO>> GetPassedStudents()
-
         {
-            // var passedStudents = StudentDataSimulation.StudentsList.Where(student => student.Grade >= 50).ToList();
-
+         
             List<StudentDTO> PassedStudentsList = StudentAPIBusinessLayer.Student.GetPassedStudents();
             if (PassedStudentsList.Count == 0)
             {
@@ -56,25 +50,21 @@ namespace StudentApi.Controllers
             return Ok(PassedStudentsList); // Return the list of students who passed.
         }
 
+        [AllowAnonymous] // Allow access to this endpoint without authentication.
         [HttpGet("AverageGrade", Name = "GetAverageGrade")]
-
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-
         public ActionResult<double> GetAverageGrade()
         {
-            //var averageGrade = StudentDataSimulation.StudentsList.Average(student => student.Grade);
             double averageGrade = StudentAPIBusinessLayer.Student.GetAverageGrade();
             return Ok(averageGrade);
         }
 
 
         [HttpGet("{id}", Name = "GetStudentById")]
-
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-
         public ActionResult<StudentDTO> GetStudentById(int id)
         {
 
@@ -82,18 +72,24 @@ namespace StudentApi.Controllers
             {
                 return BadRequest($"Not accepted ID {id}");
             }
+            int userID; int.TryParse( User.FindFirstValue(System.Security.Claims.ClaimTypes.NameIdentifier),out userID);
+            var userRole = User.FindFirstValue(System.Security.Claims.ClaimTypes.Role);
+          
 
-            //var student = StudentDataSimulation.StudentsList.FirstOrDefault(s => s.Id == id);
-            //if (student == null)
-            //{
-            //    return NotFound($"Student with ID {id} not found.");
-            //}
-            StudentAPIBusinessLayer.Student student = StudentAPIBusinessLayer.Student.Find(id);
+            bool IsAdmin = userRole == "Admin";
+            if (!IsAdmin && userID != id)
+            {
+                return Forbid();
+            }
+
+            StudentAPIBusinessLayer.Student ? student = StudentAPIBusinessLayer.Student.Find(id);
 
             if (student == null)
             {
                 return NotFound($"Student with ID {id} not found.");
             }
+
+          
 
             //here we get only the DTO object to send it back.
             StudentDTO SDTO = student.SDTO;
@@ -104,7 +100,7 @@ namespace StudentApi.Controllers
         }
 
         //for add new we use Http Post
-
+        [Authorize(Roles = "Admin")] // Restrict access to this endpoint to users with the "Admin" role.
         [HttpPost(Name = "AddStudent")]
         [ProducesResponseType(StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -116,7 +112,6 @@ namespace StudentApi.Controllers
                 return BadRequest("Invalid student data.");
             }
 
-            //newStudent.Id = StudentDataSimulation.StudentsList.Count > 0 ? StudentDataSimulation.StudentsList.Max(s => s.Id) + 1 : 1;
 
             StudentAPIBusinessLayer.Student student = new StudentAPIBusinessLayer.Student(new StudentDTO(newStudentDTO.Id, newStudentDTO.Name, newStudentDTO.Age, newStudentDTO.Grade, newStudentDTO.Email, BCrypt.Net.BCrypt.HashPassword(newStudentDTO.PasswordHash)  , newStudentDTO.Role));
             student.Save();
@@ -130,7 +125,7 @@ namespace StudentApi.Controllers
         }
 
 
-
+        [Authorize(Roles = "Admin")] // Restrict access to this endpoint to users with the "Admin" role.
         //here we use http put method for update
         [HttpPut("{id}", Name = "UpdateStudent")]
         [ProducesResponseType(StatusCodes.Status200OK)]
@@ -143,7 +138,6 @@ namespace StudentApi.Controllers
                 return BadRequest("Invalid student data.");
             }
 
-            //var student = StudentDataSimulation.StudentsList.FirstOrDefault(s => s.Id == id);
 
             StudentAPIBusinessLayer.Student student = StudentAPIBusinessLayer.Student.Find(id);
 
@@ -167,7 +161,7 @@ namespace StudentApi.Controllers
 
         }
 
-
+        [Authorize(Roles = "Admin")] // Restrict access to this endpoint to users with the "Admin" role.
         //here we use HttpDelete method
         [HttpDelete("{id}", Name = "DeleteStudent")]
         [ProducesResponseType(StatusCodes.Status200OK)]
@@ -180,9 +174,7 @@ namespace StudentApi.Controllers
                 return BadRequest($"Not accepted ID {id}");
             }
 
-            // var student = StudentDataSimulation.StudentsList.FirstOrDefault(s => s.Id == id);
-            // StudentDataSimulation.StudentsList.Remove(student);
-
+            
             if (StudentAPIBusinessLayer.Student.DeleteStudent(id))
 
                 return Ok($"Student with ID {id} has been deleted.");
