@@ -5,14 +5,14 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace StudentAPIBusinessLayer
+namespace StudentAPIBusinessLayer.DTOs.Auth
 {
-    public class LoginRequest
+    public class RefreshRequest
     {
         [Required]
-        [EmailAddress]
-        public string Email { get; set; }
+        public string RefreshToken { get; set; }=null!;
         [Required]
-        public string Password { get; set; }
+        [EmailAddress]
+        public string Email { get; set; } = null!;
     }
 }

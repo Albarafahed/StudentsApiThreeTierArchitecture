@@ -1,8 +1,10 @@
 ﻿using Microsoft.AspNetCore.Identity.Data;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
+using StudentAPIBusinessLayer.DTOs.Auth;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
+using System.Security.Cryptography;
 using System.Text;
 
 namespace StudentApi.Controllers
@@ -16,7 +18,7 @@ namespace StudentApi.Controllers
         // This endpoint handles user login.
         // It verifies credentials and returns a JWT token if login succeeds.
         [HttpPost("login")]
-        public IActionResult Login([FromBody] StudentAPIBusinessLayer.LoginRequest request)
+        public IActionResult Login([FromBody] StudentAPIBusinessLayer.DTOs.Auth.LoginRequest request)
         {
             // Step 1: Find the student by email from the in-memory data store.
             // Email acts as the unique login identifier.
@@ -79,13 +81,116 @@ namespace StudentApi.Controllers
                 signingCredentials: creds
             );
 
+            // This is what the client will send in the Authorization header.
+            var accessToken = new JwtSecurityTokenHandler().WriteToken(token);
+
+            // Step 8: Create refresh token (secure random).
+            // Refresh token is used to request a new access token later.
+            var refreshToken = GenerateRefreshToken();
+
+            // Step 9: Store refresh token securely (hash + expiry + not revoked).
+            // We store the HASH only (never store the raw refresh token).
+            student.RefreshTokenHash = BCrypt.Net.BCrypt.HashPassword(refreshToken);
+            student.RefreshTokenExpiresAt = DateTime.UtcNow.AddDays(7);
+            student.RefreshTokenRevokedAt = null;
+
+         bool i=   StudentAPIBusinessLayer.Student.UpdateRefreshToken(student.Id, student.RefreshTokenHash, student.RefreshTokenExpiresAt);
 
             // Step 7: Return the serialized JWT token to the client.
             // The client will send this token with future requests.
-            return Ok(new
+            return Ok(new TokenResponse
             {
-                token = new JwtSecurityTokenHandler().WriteToken(token)
+                AccessToken = accessToken,
+                RefreshToken = refreshToken
             });
         }
+
+        private static string GenerateRefreshToken()
+        {
+            var bytes = new byte[64];
+
+            using var rng = RandomNumberGenerator.Create();
+            rng.GetBytes(bytes);
+
+            return Convert.ToBase64String(bytes);
+        }
+
+
+        //refresh endpint
+        [HttpPost("refresh")]
+        public IActionResult Refresh([FromBody] StudentAPIBusinessLayer.DTOs.Auth.RefreshRequest request)
+        {
+            var student = StudentAPIBusinessLayer.Student.Login(request.Email);
+
+            if (student == null)
+                return Unauthorized("Invalid refresh request");
+
+            if (student.RefreshTokenRevokedAt != null)
+                return Unauthorized("Refresh token is revoked");
+
+            if (student.RefreshTokenExpiresAt == null || student.RefreshTokenExpiresAt <= DateTime.UtcNow)
+                return Unauthorized("Refresh token expired");
+
+            bool refreshValid = BCrypt.Net.BCrypt.Verify(request.RefreshToken, student.RefreshTokenHash);
+            if (!refreshValid)
+                return Unauthorized("Invalid refresh token");
+
+            // Issue NEW access token (same claims & signing settings as login)
+            var claims = new[]
+            {
+        new Claim(ClaimTypes.NameIdentifier, student.Id.ToString()),
+        new Claim(ClaimTypes.Email, student.Email),
+        new Claim(ClaimTypes.Role, student.Role)
+    };
+
+            var key = new SymmetricSecurityKey(
+                Encoding.UTF8.GetBytes("THIS_IS_A_VERY_SECRET_KEY_123456"));
+
+            var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+
+            var jwt = new JwtSecurityToken(
+                issuer: "StudentApi",
+                audience: "StudentApiUsers",
+                claims: claims,
+                //expires: DateTime.UtcNow.AddMinutes(30),
+                expires: DateTime.UtcNow.AddSeconds(10),
+                signingCredentials: creds
+            );
+
+            var newAccessToken = new JwtSecurityTokenHandler().WriteToken(jwt);
+
+            // Rotation: replace refresh token
+            var newRefreshToken = GenerateRefreshToken();
+            student.RefreshTokenHash = BCrypt.Net.BCrypt.HashPassword(newRefreshToken);
+            student.RefreshTokenExpiresAt = DateTime.UtcNow.AddDays(7);
+            student.RefreshTokenRevokedAt = null;
+            bool i = StudentAPIBusinessLayer.Student.UpdateRefreshToken(student.Id, student.RefreshTokenHash, student.RefreshTokenExpiresAt);
+
+
+            return Ok(new TokenResponse
+            {
+                AccessToken = newAccessToken,
+                RefreshToken = newRefreshToken
+            });
+        }
+
+        //Logout Endpoint
+        [HttpPost("logout")]
+        public IActionResult Logout([FromBody] StudentAPIBusinessLayer.DTOs.Auth.LogoutRequest request)
+        {
+            var student = StudentAPIBusinessLayer.Student.Login(request.Email);
+
+            if (student == null)
+                return Ok(); // Do not reveal if user exists
+
+            bool refreshValid = BCrypt.Net.BCrypt.Verify(request.RefreshToken, student.RefreshTokenHash);
+            if (!refreshValid)
+                return Ok();
+
+            student.RefreshTokenRevokedAt = DateTime.UtcNow;
+            StudentAPIBusinessLayer.Student.UpdateRefreshToken(student.Id, student.RefreshTokenHash, student.RefreshTokenExpiresAt);
+            return Ok("Logged out successfully");
+        }
+
     }
 }

@@ -21,6 +21,9 @@ namespace StudentAPIBusinessLayer
         public string Email { get; set; }
         public string PasswordHash { get; set; }
         public string Role { get; set; }
+        public string RefreshTokenHash { get; set; }
+        public DateTime? RefreshTokenExpiresAt { get; set; }
+        public DateTime? RefreshTokenRevokedAt { get; set; }
 
         public Student(StudentDTO SDTO, enMode cMode = enMode.AddNew)
 
@@ -44,7 +47,7 @@ namespace StudentAPIBusinessLayer
 
             return (this.ID != -1);
         }
-        public static StudentDTO? Login(string email)
+        public static StudentLoginDTO? Login(string email)
         {
             return StudentData.Login(email);
         }
@@ -53,7 +56,10 @@ namespace StudentAPIBusinessLayer
             return StudentData.UpdateStudent(SDTO);
         }
 
-
+        public static bool UpdateRefreshToken(int studentId, string refreshTokenHash, DateTime? expiresAt)
+        {
+            return StudentData.UpdateRefreshToken(studentId, refreshTokenHash, expiresAt);
+        }
         public static List<StudentDTO> GetAllStudents()
         {
             return StudentData.GetAllStudents();
@@ -110,6 +116,7 @@ namespace StudentAPIBusinessLayer
             return false;
         }
 
+       
         public static bool DeleteStudent(int ID)
         {
             return StudentData.DeleteStudent(ID);

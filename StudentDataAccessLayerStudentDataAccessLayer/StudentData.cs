@@ -149,10 +149,11 @@ namespace StudentDataAccessLayer
             }
         }
 
-
+      
         public static int AddStudent(StudentDTO StudentDTO)
         {
             using (var connection = new SqlConnection(_connectionString))
+               
             using (var command = new SqlCommand("SP_AddStudent", connection))
             {
                 command.CommandType = CommandType.StoredProcedure;
@@ -216,7 +217,7 @@ namespace StudentDataAccessLayer
             }
         }
 
-        public static StudentDTO? Login(string email)
+        public static StudentLoginDTO? Login(string email)
         {
             using (var connection = new SqlConnection(_connectionString))
             using (var command = new SqlCommand("SP_Login", connection))
@@ -229,7 +230,7 @@ namespace StudentDataAccessLayer
                 {
                     if (reader.Read())
                     {
-                        return new StudentDTO
+                        return new StudentLoginDTO
                         (
                             reader.GetInt32(reader.GetOrdinal("Id")),
                             reader.GetString(reader.GetOrdinal("Name")),
@@ -237,7 +238,10 @@ namespace StudentDataAccessLayer
                             reader.GetInt32(reader.GetOrdinal("Grade")),
                           reader.GetString(reader.GetOrdinal("Email")),
                             reader.GetString(reader.GetOrdinal("PasswordHash")),
-                             reader.GetString(reader.GetOrdinal("Role"))
+                             reader.GetString(reader.GetOrdinal("Role")),
+                             reader.IsDBNull(reader.GetOrdinal("RefreshTokenHash")) ? null : reader.GetString(reader.GetOrdinal("RefreshTokenHash")),
+                                reader.IsDBNull(reader.GetOrdinal("RefreshTokenExpiresAt")) ? null : reader.GetDateTime(reader.GetOrdinal("RefreshTokenExpiresAt")),
+                                reader.IsDBNull(reader.GetOrdinal("RefreshTokenRevokedAt")) ? null : reader.GetDateTime(reader.GetOrdinal("RefreshTokenRevokedAt"))
                         );
                     }
                     else
@@ -245,6 +249,21 @@ namespace StudentDataAccessLayer
                         return null;
                     }   
                 }
+            }
+        }
+
+        public static bool UpdateRefreshToken(int studentId, string refreshTokenHash, DateTime? expiresAt)
+        {
+            using (var connection = new SqlConnection(_connectionString))
+            using (var command = new SqlCommand("SP_UpdateRefreshToken", connection))
+            {
+                command.CommandType = CommandType.StoredProcedure;
+                command.Parameters.AddWithValue("@StudentId", studentId);
+                command.Parameters.AddWithValue("@RefreshTokenHash", refreshTokenHash);
+                command.Parameters.AddWithValue("@ExpiresAt", expiresAt);
+                connection.Open();
+                int rowsAffected = command.ExecuteNonQuery();
+                return rowsAffected > 0;
             }
         }
     }
