@@ -179,23 +179,32 @@ namespace StudentDataAccessLayer
 
         public static bool UpdateStudent(StudentDTO StudentDTO)
         {
-            using (var connection = new SqlConnection(_connectionString))
-            using (var command = new SqlCommand("SP_UpdateStudent", connection))
+            try
             {
-                command.CommandType = CommandType.StoredProcedure;
 
-                command.Parameters.AddWithValue("@StudentId", StudentDTO.Id);
-                command.Parameters.AddWithValue("@Name", StudentDTO.Name);
-                command.Parameters.AddWithValue("@Age", StudentDTO.Age);
-                command.Parameters.AddWithValue("@Grade", StudentDTO.Grade);
-                command.Parameters.AddWithValue("@Email", StudentDTO.Email);
-                command.Parameters.AddWithValue("@PasswordHash", StudentDTO.PasswordHash);
-                command.Parameters.AddWithValue("@Role", StudentDTO.Role);
+                using (var connection = new SqlConnection(_connectionString))
+                using (var command = new SqlCommand("SP_UpdateStudent", connection))
+                {
+                    command.CommandType = CommandType.StoredProcedure;
 
-                connection.Open();
-                command.ExecuteNonQuery();
-                return true;
+                    command.Parameters.AddWithValue("@StudentId", StudentDTO.Id);
+                    command.Parameters.AddWithValue("@Name", StudentDTO.Name);
+                    command.Parameters.AddWithValue("@Age", StudentDTO.Age);
+                    command.Parameters.AddWithValue("@Grade", StudentDTO.Grade);
+                    command.Parameters.AddWithValue("@Email", StudentDTO.Email);
+                    command.Parameters.AddWithValue("@PasswordHash", StudentDTO.PasswordHash);
+                    command.Parameters.AddWithValue("@Role", StudentDTO.Role);
 
+                    connection.Open();
+                    command.ExecuteNonQuery();
+                    return true;
+
+                }
+            }
+            catch (Exception ex)
+            {
+
+                return false;
             }
         }
 

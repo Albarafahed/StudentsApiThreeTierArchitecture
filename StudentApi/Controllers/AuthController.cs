@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Identity.Data;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.IdentityModel.Tokens;
 using StudentAPIBusinessLayer.DTOs.Auth;
 using System.IdentityModel.Tokens.Jwt;
@@ -18,6 +19,7 @@ namespace StudentApi.Controllers
         // This endpoint handles user login.
         // It verifies credentials and returns a JWT token if login succeeds.
         [HttpPost("login")]
+        [EnableRateLimiting("AuthLimiter")]
         public IActionResult Login([FromBody] StudentAPIBusinessLayer.DTOs.Auth.LoginRequest request)
         {
             // Step 1: Find the student by email from the in-memory data store.
@@ -118,6 +120,9 @@ namespace StudentApi.Controllers
 
         //refresh endpint
         [HttpPost("refresh")]
+        [EnableRateLimiting("AuthLimiter")]
+        [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         public IActionResult Refresh([FromBody] StudentAPIBusinessLayer.DTOs.Auth.RefreshRequest request)
         {
             var student = StudentAPIBusinessLayer.Student.Login(request.Email);
