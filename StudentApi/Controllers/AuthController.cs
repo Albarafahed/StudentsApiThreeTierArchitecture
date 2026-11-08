@@ -1,7 +1,9 @@
 ﻿using Microsoft.AspNetCore.Identity.Data;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
+using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
+using StudentApi.Configuration;
 using StudentAPIBusinessLayer.DTOs.Auth;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
@@ -14,8 +16,9 @@ namespace StudentApi.Controllers
     // such as logging in and issuing JWT tokens.
     [ApiController]
     [Route("api/[controller]")]
-    public class AuthController : ControllerBase
+    public class AuthController (ILogger<AuthController> logger, IOptions<JwtOptions> jwtOptions) : ControllerBase
     {
+        private readonly string _secretKey = jwtOptions.Value.SecretKey;
         // This endpoint handles user login.
         // It verifies credentials and returns a JWT token if login succeeds.
         [HttpPost("login")]
@@ -25,12 +28,16 @@ namespace StudentApi.Controllers
             // Step 1: Find the student by email from the in-memory data store.
             // Email acts as the unique login identifier.
             var student = StudentAPIBusinessLayer.Student.Login(request.Email);
-
+            var IP= HttpContext.Connection.RemoteIpAddress?.ToString()?? "Unknown IP";
 
             // If no student is found with the given email,
             // return 401 Unauthorized without revealing which field was wrong.
             if (student == null)
+            {
+                logger.LogWarning("Failed login attempt for (email not Found) {Email} from IP {IP}", request.Email, IP);
                 return Unauthorized("Invalid credentials");
+
+            }
 
 
             // Step 2: Verify the provided password against the stored hash.
@@ -42,7 +49,11 @@ namespace StudentApi.Controllers
             // If the password does not match the stored hash,
             // return 401 Unauthorized.
             if (!isValidPassword)
+            {
+                logger.LogWarning("Failed login attempt for (bad Password) {Email} from IP {IP}", request.Email, IP);
                 return Unauthorized("Invalid credentials");
+
+            }
 
 
             // Step 3: Create claims that represent the authenticated user's identity.
@@ -65,7 +76,7 @@ namespace StudentApi.Controllers
             // Step 4: Create the symmetric security key used to sign the JWT.
             // This key must match the key used in JWT validation middleware.
             var key = new SymmetricSecurityKey(
-                Encoding.UTF8.GetBytes("THIS_IS_A_VERY_SECRET_KEY_123456"));
+                Encoding.UTF8.GetBytes(_secretKey));
 
 
             // Step 5: Define the signing credentials.
@@ -126,19 +137,32 @@ namespace StudentApi.Controllers
         public IActionResult Refresh([FromBody] StudentAPIBusinessLayer.DTOs.Auth.RefreshRequest request)
         {
             var student = StudentAPIBusinessLayer.Student.Login(request.Email);
-
+            var IP = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "Unknown IP";
             if (student == null)
+            {
+                logger.LogWarning("Failed refresh attempt for (email not Found) {Email} from IP {IP}", request.Email, IP);
                 return Unauthorized("Invalid refresh request");
 
+            }
+
             if (student.RefreshTokenRevokedAt != null)
+            {
+                logger.LogWarning("Failed refresh attempt for (refresh token revoked) {User ID} {Email} from IP {IP}", student.Id, request.Email, IP);
                 return Unauthorized("Refresh token is revoked");
+            }
 
             if (student.RefreshTokenExpiresAt == null || student.RefreshTokenExpiresAt <= DateTime.UtcNow)
+            { 
+                logger.LogWarning("Failed refresh attempt for (refresh token expired) {User ID} {Email} from IP {IP}", student.Id, request.Email, IP);
                 return Unauthorized("Refresh token expired");
+            }
 
             bool refreshValid = BCrypt.Net.BCrypt.Verify(request.RefreshToken, student.RefreshTokenHash);
             if (!refreshValid)
+            {
+                logger.LogWarning("Failed refresh attempt for (invalid refresh token) {User ID} {Email} from IP {IP}", student.Id, request.Email, IP);
                 return Unauthorized("Invalid refresh token");
+            }
 
             // Issue NEW access token (same claims & signing settings as login)
             var claims = new[]
@@ -147,9 +171,10 @@ namespace StudentApi.Controllers
         new Claim(ClaimTypes.Email, student.Email),
         new Claim(ClaimTypes.Role, student.Role)
     };
+          
 
             var key = new SymmetricSecurityKey(
-                Encoding.UTF8.GetBytes("THIS_IS_A_VERY_SECRET_KEY_123456"));
+                Encoding.UTF8.GetBytes(_secretKey));
 
             var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 

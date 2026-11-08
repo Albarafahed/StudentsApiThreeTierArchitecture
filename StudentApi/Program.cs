@@ -2,6 +2,8 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using StudentApi.Configuration;
+using System.Security.Claims;
 using System.Text;
 using System.Threading.RateLimiting;
 
@@ -9,6 +11,18 @@ using System.Threading.RateLimiting;
 // This is where we register services (DI container) and configure the app.
 var builder = WebApplication.CreateBuilder(args);
 
+// =============================== 
+var secretKey = builder.Configuration["JWT_SECRET_KEY"];
+
+if (string.IsNullOrWhiteSpace(secretKey))
+{
+    throw new Exception("JWT secret key is not configured.");
+}
+
+builder.Services.Configure<JwtOptions>(options =>
+{
+    options.SecretKey = secretKey;
+});
 // ===============================
 // 1) Authentication (JWT Bearer)
 // ===============================
@@ -43,8 +57,8 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             // The symmetric secret key used to validate the token signature.
             // This MUST be the same key used to sign tokens during login.
             IssuerSigningKey = new SymmetricSecurityKey(
-                Encoding.UTF8.GetBytes("THIS_IS_A_VERY_SECRET_KEY_123456"))
-        };
+                Encoding.UTF8.GetBytes(secretKey))
+        }; 
     });
 
 
@@ -183,6 +197,29 @@ app.UseAuthentication();
 
 // Authorization checks access rules (e.g., [Authorize], roles, policies).
 app.UseAuthorization();
+
+// Custom middleware to log 403 Forbidden responses for security auditing.
+app.Use(async (context, next) =>
+{
+    await next();
+
+
+    if (context.Response.StatusCode == StatusCodes.Status403Forbidden)
+    {
+        var userId = context.User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "anonymous";
+        var ip = context.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+        var path = context.Request.Path.ToString();
+
+
+        // ✅ Centralized security log for authorization abuse
+        app.Logger.LogWarning(
+            "Forbidden access. UserId={UserId}, Path={Path}, IP={IP}",
+            userId,
+            path,
+            ip
+        );
+    }
+});
 
 // Map controller routes (e.g., /api/Auth/login, /api/Students/All).
 app.MapControllers();
