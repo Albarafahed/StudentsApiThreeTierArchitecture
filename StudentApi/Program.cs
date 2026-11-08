@@ -3,7 +3,6 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using StudentApi.Configuration;
-using StudentApi.Service;
 using StudentAPIBusinessLayer;
 using StudentAPIBusinessLayer.Interface;
 using StudentDataAccessLayer;

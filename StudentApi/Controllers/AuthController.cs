@@ -108,7 +108,10 @@ namespace StudentApi.Controllers
             student.RefreshTokenExpiresAt = DateTime.UtcNow.AddDays(7);
             student.RefreshTokenRevokedAt = null;
 
-         bool i= await  studentService.UpdateRefreshTokenAsync(student.Id, student.RefreshTokenHash, student.RefreshTokenExpiresAt);
+         bool success= await  studentService.UpdateRefreshTokenAsync(student.Id, student.RefreshTokenHash, student.RefreshTokenExpiresAt);
+
+            if(!success)
+                return StatusCode(500);
 
             // Step 7: Return the serialized JWT token to the client.
             // The client will send this token with future requests.
@@ -195,8 +198,9 @@ namespace StudentApi.Controllers
             student.RefreshTokenHash = BCrypt.Net.BCrypt.HashPassword(newRefreshToken);
             student.RefreshTokenExpiresAt = DateTime.UtcNow.AddDays(7);
             student.RefreshTokenRevokedAt = null;
-            bool i = await studentService.UpdateRefreshTokenAsync(student.Id, student.RefreshTokenHash, student.RefreshTokenExpiresAt);
-
+            bool success = await studentService.UpdateRefreshTokenAsync(student.Id, student.RefreshTokenHash, student.RefreshTokenExpiresAt);
+            if(!success)
+                return StatusCode(500);
 
             return Ok(new TokenResponse
             {

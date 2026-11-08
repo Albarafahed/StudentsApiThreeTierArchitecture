@@ -10,7 +10,7 @@ namespace StudentAPIBusinessLayer.Interface
 {
     public interface IStudentService
     {
-       Task<StudentDTO> SaveAsync(StudentDTO studentDTO, StudentMode mode = StudentMode.AddNew);
+       Task<StudentDTO?> SaveAsync(StudentDTO studentDTO, StudentMode mode = StudentMode.AddNew);
        Task< StudentDTO?> FindAsync(int studentId);
        Task< StudentLoginDTO?> LoginAsync(string email);
        Task< bool> UpdateRefreshTokenAsync(
