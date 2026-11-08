@@ -3,6 +3,11 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using StudentApi.Configuration;
+using StudentApi.Service;
+using StudentAPIBusinessLayer;
+using StudentAPIBusinessLayer.Interface;
+using StudentDataAccessLayer;
+using StudentDataAccessLayer.Interface;
 using System.Security.Claims;
 using System.Text;
 using System.Threading.RateLimiting;
@@ -10,7 +15,8 @@ using System.Threading.RateLimiting;
 // Create the application builder.
 // This is where we register services (DI container) and configure the app.
 var builder = WebApplication.CreateBuilder(args);
-
+builder.Services.AddScoped<IStudentData, StudentData>();
+builder.Services.AddScoped<IStudentService, StudentService>();
 // =============================== 
 var secretKey = builder.Configuration["JWT_SECRET_KEY"];
 

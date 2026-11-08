@@ -1,5 +1,8 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Student.Contracts;
+using StudentAPIBusinessLayer;
+using StudentAPIBusinessLayer.Interface;
 using StudentDataAccessLayer;
 
 //using StudentApi.Models;
@@ -15,7 +18,7 @@ namespace StudentApi.Controllers
                     //  [Route("[controller]")] // Sets the route for this controller to "students", based on the controller name.
     [Route("api/Students")]
 
-    public class StudentsController : ControllerBase // Declare the controller class inheriting from ControllerBase.
+    public class StudentsController(IStudentService studentService) : ControllerBase // Declare the controller class inheriting from ControllerBase.
     {
         [Authorize(Roles = "Admin")] // Restrict access to this endpoint to users with the "Admin" role.
         [HttpGet("All", Name = "GetAllStudents")] // Marks this method to respond to HTTP GET requests.
@@ -23,11 +26,11 @@ namespace StudentApi.Controllers
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
-        public ActionResult<IEnumerable<StudentDTO>> GetAllStudents() // Define a method to get all students.
+        public async Task<ActionResult<IEnumerable<StudentDTO>>> GetAllStudentsAsync() // Define a method to get all students.
         {
            
 
-            List<StudentDTO> StudentsList = StudentAPIBusinessLayer.Student.GetAllStudents();
+            List<StudentDTO> StudentsList = await studentService.GetAllStudentsAsync();
             if (StudentsList.Count == 0)
             {
                 return NotFound("No Students Found!");
@@ -40,10 +43,10 @@ namespace StudentApi.Controllers
         [HttpGet("Passed", Name = "GetPassedStudents")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public ActionResult<IEnumerable<StudentDTO>> GetPassedStudents()
+        public async Task<ActionResult<IEnumerable<StudentDTO>>> GetPassedStudentsAsync()
         {
          
-            List<StudentDTO> PassedStudentsList = StudentAPIBusinessLayer.Student.GetPassedStudents();
+            List<StudentDTO> PassedStudentsList = await studentService.GetPassedStudentsAsync();
             if (PassedStudentsList.Count == 0)
             {
                 return NotFound("No Students Found!");
@@ -56,9 +59,9 @@ namespace StudentApi.Controllers
         [HttpGet("AverageGrade", Name = "GetAverageGrade")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public ActionResult<double> GetAverageGrade()
+        public async Task<ActionResult<double>> GetAverageGrade()
         {
-            double averageGrade = StudentAPIBusinessLayer.Student.GetAverageGrade();
+            double averageGrade = await studentService.GetAverageGradeAsync();
             return Ok(averageGrade);
         }
 
@@ -69,7 +72,7 @@ namespace StudentApi.Controllers
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
-        public async Task<ActionResult<StudentDTO>> GetStudentById(int id, [FromServices] IAuthorizationService authorizationService)
+        public async Task<ActionResult<StudentDTO>> GetStudentByIdAsync(int id, [FromServices] IAuthorizationService authorizationService)
         {
 
             if (id < 1)
@@ -77,9 +80,9 @@ namespace StudentApi.Controllers
                 return BadRequest($"Not accepted ID {id}");
             }
           
-            StudentAPIBusinessLayer.Student ? student = StudentAPIBusinessLayer.Student.Find(id);
+          StudentDTO? studentDto = await studentService.FindAsync(id);
 
-            if (student == null)
+            if (studentDto == null)
             {
                 return NotFound($"Student with ID {id} not found.");
             }
@@ -97,10 +100,10 @@ namespace StudentApi.Controllers
                 return Forbid(); // 403 Forbidden
 
             //here we get only the DTO object to send it back.
-            StudentDTO SDTO = student.SDTO;
+           
 
             //we return the DTO not the student object.
-            return Ok(SDTO);
+            return Ok(studentDto);
 
         }
 
@@ -111,7 +114,7 @@ namespace StudentApi.Controllers
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
-        public ActionResult<StudentDTO> AddStudent(StudentDTO newStudentDTO)
+        public async Task<ActionResult<StudentDTO>> AddStudentAsync(StudentDTO newStudentDTO)
         {
             //we validate the data here
             if (newStudentDTO == null || string.IsNullOrEmpty(newStudentDTO.Name) || newStudentDTO.Age < 0 || newStudentDTO.Grade < 0)
@@ -119,15 +122,17 @@ namespace StudentApi.Controllers
                 return BadRequest("Invalid student data.");
             }
 
+            var createdStudent = await studentService.SaveAsync(
+                newStudentDTO,
+                StudentMode.AddNew);
 
-            StudentAPIBusinessLayer.Student student = new StudentAPIBusinessLayer.Student(new StudentDTO(newStudentDTO.Id, newStudentDTO.Name, newStudentDTO.Age, newStudentDTO.Grade, newStudentDTO.Email, BCrypt.Net.BCrypt.HashPassword(newStudentDTO.PasswordHash)  , newStudentDTO.Role));
-            student.Save();
+            if (createdStudent == null)
+                return StatusCode(500, "Failed to create student.");
 
-            newStudentDTO.Id = student.ID;
-
-            //we return the DTO only not the full student object
-            //we dont return Ok here,we return createdAtRoute: this will be status code 201 created.
-            return CreatedAtRoute("GetStudentById", new { id = newStudentDTO.Id }, newStudentDTO);
+            return CreatedAtRoute(
+                "GetStudentById",
+                new { id = createdStudent.Id },
+                createdStudent);
 
         }
 
@@ -138,7 +143,7 @@ namespace StudentApi.Controllers
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public ActionResult<StudentDTO> UpdateStudent(int id, StudentDTO updatedStudent)
+        public async Task<ActionResult<StudentDTO>> UpdateStudentAsync(int id, StudentDTO updatedStudent)
         {
             if (id < 1 || updatedStudent == null || string.IsNullOrEmpty(updatedStudent.Name) || updatedStudent.Age < 0 || updatedStudent.Grade < 0)
             {
@@ -146,26 +151,27 @@ namespace StudentApi.Controllers
             }
 
 
-            StudentAPIBusinessLayer.Student student = StudentAPIBusinessLayer.Student.Find(id);
-
+           var student = await studentService.FindAsync(id);
 
             if (student == null)
-            {
                 return NotFound($"Student with ID {id} not found.");
-            }
-
 
             student.Name = updatedStudent.Name;
             student.Age = updatedStudent.Age;
             student.Grade = updatedStudent.Grade;
             student.Email = updatedStudent.Email;
-            student.PasswordHash = BCrypt.Net.BCrypt.HashPassword( updatedStudent.PasswordHash);
-            student.Role = updatedStudent.Role; 
-            student.Save();
+            student.PasswordHash = BCrypt.Net.BCrypt.HashPassword(
+                updatedStudent.PasswordHash);
+            student.Role = updatedStudent.Role;
 
-            //we return the DTO not the full student object.
-            return Ok(student.SDTO);
+            var result = await studentService.SaveAsync(
+                student,
+                StudentMode.Update);
 
+            if (result == null)
+                return StatusCode(500, "Failed to update student.");
+
+            return Ok(result);
         }
 
         [Authorize(Roles = "Admin")] // Restrict access to this endpoint to users with the "Admin" role.
@@ -174,7 +180,7 @@ namespace StudentApi.Controllers
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public ActionResult DeleteStudent(int id)
+        public async Task<ActionResult> DeleteStudentAsync(int id)
         {
             if (id < 1)
             {
@@ -182,7 +188,7 @@ namespace StudentApi.Controllers
             }
 
             
-            if (StudentAPIBusinessLayer.Student.DeleteStudent(id))
+            if (await studentService.DeleteStudentAsync(id))
 
                 return Ok($"Student with ID {id} has been deleted.");
             else

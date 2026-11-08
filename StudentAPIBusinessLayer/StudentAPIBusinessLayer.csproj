@@ -12,6 +12,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\Student.Contracts\Student.Contracts.csproj" />
     <ProjectReference Include="..\StudentDataAccessLayerStudentDataAccessLayer\StudentDataAccessLayer.csproj" />
   </ItemGroup>
 

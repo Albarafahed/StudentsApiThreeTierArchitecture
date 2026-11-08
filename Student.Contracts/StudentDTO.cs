@@ -1,8 +1,4 @@
-﻿using System;
-using System.Data;
-
-
-namespace StudentDataAccessLayer
+﻿namespace Student.Contracts
 {
     public class StudentDTO
     {
@@ -28,8 +24,6 @@ namespace StudentDataAccessLayer
         public string PasswordHash { get; set; }
         public string Role { get; set; }
 
-      
-    }
 
-   
+    }
 }

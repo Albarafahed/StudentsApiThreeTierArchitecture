@@ -1,17 +1,19 @@
-﻿using System;
+﻿using Microsoft.Data.SqlClient;
+using Student.Contracts;
+using StudentDataAccessLayer.Interface;
+using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using Microsoft.Data.SqlClient;
 namespace StudentDataAccessLayer
 {
-    public class StudentData
+    public class StudentData : IStudentData
     {
         static string _connectionString = "Server=localhost\\SQLEXPRESS;Database=StudentsDB;Trusted_Connection=True;TrustServerCertificate=True;";
 
-        public static List<StudentDTO> GetAllStudents()
+        public async Task<List<StudentDTO>> GetAllStudentsAsync()
         {
             var StudentsList = new List<StudentDTO>();
 
@@ -21,11 +23,11 @@ namespace StudentDataAccessLayer
                 {
                     cmd.CommandType = CommandType.StoredProcedure;
 
-                    conn.Open();
+                   await conn.OpenAsync();
 
-                    using (SqlDataReader reader = cmd.ExecuteReader())
+                    using (SqlDataReader reader = await cmd.ExecuteReaderAsync())
                     {
-                        while (reader.Read())
+                        while (await reader.ReadAsync())
                         {
                             StudentsList.Add(new StudentDTO
                             (
@@ -55,7 +57,7 @@ namespace StudentDataAccessLayer
 
         }
 
-        public static List<StudentDTO> GetPassedStudents()
+        public async Task<List<StudentDTO>> GetPassedStudentsAsync()
         {
             var StudentsList = new List<StudentDTO>();
 
@@ -65,11 +67,11 @@ namespace StudentDataAccessLayer
                 {
                     cmd.CommandType = CommandType.StoredProcedure;
 
-                    conn.Open();
+                    await conn.OpenAsync();
 
-                    using (SqlDataReader reader = cmd.ExecuteReader())
+                    using (SqlDataReader reader = await cmd.ExecuteReaderAsync())
                     {
-                        while (reader.Read())
+                        while (await reader.ReadAsync())
                         {
                             StudentsList.Add(new StudentDTO
                             (
@@ -91,7 +93,7 @@ namespace StudentDataAccessLayer
 
         }
 
-        public static double GetAverageGrade()
+        public async Task<double> GetAverageGradeAsync()
         {
             double averageGrade = 0;
 
@@ -101,9 +103,9 @@ namespace StudentDataAccessLayer
                 {
                     cmd.CommandType = CommandType.StoredProcedure;
 
-                    conn.Open();
+                    await conn.OpenAsync();
 
-                    object result = cmd.ExecuteScalar();
+                    object ? result = await cmd.ExecuteScalarAsync();
                     if (result != DBNull.Value)
                     {
                         averageGrade = Convert.ToDouble(result);
@@ -117,7 +119,7 @@ namespace StudentDataAccessLayer
             return averageGrade;
         }
 
-        public static StudentDTO? GetStudentById(int studentId)
+        public async Task<StudentDTO?> GetStudentByIdAsync(int studentId)
         {
             using (var connection = new SqlConnection(_connectionString))
             using (var command = new SqlCommand("SP_GetStudentById", connection))
@@ -125,10 +127,10 @@ namespace StudentDataAccessLayer
                 command.CommandType = CommandType.StoredProcedure;
                 command.Parameters.AddWithValue("@StudentId", studentId);
 
-                connection.Open();
-                using (var reader = command.ExecuteReader())
+                await connection.OpenAsync();
+                using (var reader = await command.ExecuteReaderAsync())
                 {
-                    if (reader.Read())
+                    if (await reader.ReadAsync())
                     {
                         return new StudentDTO
                        (
@@ -150,7 +152,7 @@ namespace StudentDataAccessLayer
         }
 
       
-        public static int AddStudent(StudentDTO StudentDTO)
+        public async Task<int> AddStudentAsync(StudentDTO StudentDTO)
         {
             using (var connection = new SqlConnection(_connectionString))
                
@@ -170,14 +172,14 @@ namespace StudentDataAccessLayer
                 };
                 command.Parameters.Add(outputIdParam);
 
-                connection.Open();
-                command.ExecuteNonQuery();
+                await connection.OpenAsync();
+                await command.ExecuteNonQueryAsync();
 
                 return (int)outputIdParam.Value;
             }
         }
 
-        public static bool UpdateStudent(StudentDTO StudentDTO)
+        public async Task<bool> UpdateStudentAsync(StudentDTO StudentDTO)
         {
             try
             {
@@ -195,8 +197,8 @@ namespace StudentDataAccessLayer
                     command.Parameters.AddWithValue("@PasswordHash", StudentDTO.PasswordHash);
                     command.Parameters.AddWithValue("@Role", StudentDTO.Role);
 
-                    connection.Open();
-                    command.ExecuteNonQuery();
+                    await connection.OpenAsync();
+                    await command.ExecuteNonQueryAsync();
                     return true;
 
                 }
@@ -208,25 +210,31 @@ namespace StudentDataAccessLayer
             }
         }
 
-        public static bool DeleteStudent(int studentId)
+        public async Task<bool> DeleteStudentAsync(int studentId)
         {
-
-            using (var connection = new SqlConnection(_connectionString))
-            using (var command = new SqlCommand("SP_DeleteStudent", connection))
+            try
             {
-                command.CommandType = CommandType.StoredProcedure;
-                command.Parameters.AddWithValue("@StudentId", studentId);
 
-                connection.Open();
+                using (var connection = new SqlConnection(_connectionString))
+                using (var command = new SqlCommand("SP_DeleteStudent", connection))
+                {
+                    command.CommandType = CommandType.StoredProcedure;
+                    command.Parameters.AddWithValue("@StudentId", studentId);
 
-                int rowsAffected = (int)command.ExecuteScalar();
-                return (rowsAffected == 1);
+                   await connection.OpenAsync();
+
+                    return Convert.ToInt32(await command.ExecuteScalarAsync()) == 1;
 
 
+                }
+            }
+            catch (Exception ex)
+            {
+                return false;
             }
         }
 
-        public static StudentLoginDTO? Login(string email)
+        public async Task<StudentLoginDTO?> LoginAsync(string email)
         {
             using (var connection = new SqlConnection(_connectionString))
             using (var command = new SqlCommand("SP_Login", connection))
@@ -234,10 +242,10 @@ namespace StudentDataAccessLayer
                 command.CommandType = CommandType.StoredProcedure;
                 command.Parameters.AddWithValue("@Email", email);
               
-                connection.Open();
-                using (var reader = command.ExecuteReader())
+              await  connection.OpenAsync();
+                using (var reader = await command.ExecuteReaderAsync())
                 {
-                    if (reader.Read())
+                    if (await reader.ReadAsync())
                     {
                         return new StudentLoginDTO
                         (
@@ -261,7 +269,7 @@ namespace StudentDataAccessLayer
             }
         }
 
-        public static bool UpdateRefreshToken(int studentId, string refreshTokenHash, DateTime? expiresAt)
+        public async Task<  bool> UpdateRefreshTokenAsync(int studentId, string refreshTokenHash, DateTime? expiresAt)
         {
             using (var connection = new SqlConnection(_connectionString))
             using (var command = new SqlCommand("SP_UpdateRefreshToken", connection))
@@ -270,8 +278,8 @@ namespace StudentDataAccessLayer
                 command.Parameters.AddWithValue("@StudentId", studentId);
                 command.Parameters.AddWithValue("@RefreshTokenHash", refreshTokenHash);
                 command.Parameters.AddWithValue("@ExpiresAt", expiresAt);
-                connection.Open();
-                int rowsAffected = command.ExecuteNonQuery();
+               await connection.OpenAsync();
+                int rowsAffected = await command.ExecuteNonQueryAsync();
                 return rowsAffected > 0;
             }
         }

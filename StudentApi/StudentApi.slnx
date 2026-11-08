@@ -1,5 +1,7 @@
 <Solution>
+  <Project Path="../Student.Contracts/Student.Contracts.csproj" Id="5e8a8037-b1fd-48b5-8219-546795e21b5b" />
   <Project Path="../StudentAPIBusinessLayer/StudentAPIBusinessLayer.csproj" />
   <Project Path="../StudentDataAccessLayerStudentDataAccessLayer/StudentDataAccessLayer.csproj" />
+  <Project Path="../Stuednt.Test/Stuednt.Test.csproj" Id="cb136263-72f9-49a4-a4a2-9fd62dd12249" />
   <Project Path="StudentApi.csproj" />
 </Solution>

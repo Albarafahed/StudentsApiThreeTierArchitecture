@@ -5,6 +5,7 @@ using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using StudentApi.Configuration;
 using StudentAPIBusinessLayer.DTOs.Auth;
+using StudentAPIBusinessLayer.Interface;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Security.Cryptography;
@@ -16,18 +17,18 @@ namespace StudentApi.Controllers
     // such as logging in and issuing JWT tokens.
     [ApiController]
     [Route("api/[controller]")]
-    public class AuthController (ILogger<AuthController> logger, IOptions<JwtOptions> jwtOptions) : ControllerBase
+    public class AuthController (ILogger<AuthController> logger, IOptions<JwtOptions> jwtOptions, IStudentService studentService) : ControllerBase
     {
         private readonly string _secretKey = jwtOptions.Value.SecretKey;
         // This endpoint handles user login.
         // It verifies credentials and returns a JWT token if login succeeds.
         [HttpPost("login")]
         [EnableRateLimiting("AuthLimiter")]
-        public IActionResult Login([FromBody] StudentAPIBusinessLayer.DTOs.Auth.LoginRequest request)
+        public async Task<IActionResult> LoginAsync([FromBody] StudentAPIBusinessLayer.DTOs.Auth.LoginRequest request)
         {
             // Step 1: Find the student by email from the in-memory data store.
             // Email acts as the unique login identifier.
-            var student = StudentAPIBusinessLayer.Student.Login(request.Email);
+            var student = await studentService.LoginAsync(request.Email);
             var IP= HttpContext.Connection.RemoteIpAddress?.ToString()?? "Unknown IP";
 
             // If no student is found with the given email,
@@ -107,7 +108,7 @@ namespace StudentApi.Controllers
             student.RefreshTokenExpiresAt = DateTime.UtcNow.AddDays(7);
             student.RefreshTokenRevokedAt = null;
 
-         bool i=   StudentAPIBusinessLayer.Student.UpdateRefreshToken(student.Id, student.RefreshTokenHash, student.RefreshTokenExpiresAt);
+         bool i= await  studentService.UpdateRefreshTokenAsync(student.Id, student.RefreshTokenHash, student.RefreshTokenExpiresAt);
 
             // Step 7: Return the serialized JWT token to the client.
             // The client will send this token with future requests.
@@ -134,9 +135,9 @@ namespace StudentApi.Controllers
         [EnableRateLimiting("AuthLimiter")]
         [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-        public IActionResult Refresh([FromBody] StudentAPIBusinessLayer.DTOs.Auth.RefreshRequest request)
+        public async Task<IActionResult> RefreshAsync([FromBody] StudentAPIBusinessLayer.DTOs.Auth.RefreshRequest request)
         {
-            var student = StudentAPIBusinessLayer.Student.Login(request.Email);
+            var student = await studentService.LoginAsync(request.Email);
             var IP = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "Unknown IP";
             if (student == null)
             {
@@ -194,7 +195,7 @@ namespace StudentApi.Controllers
             student.RefreshTokenHash = BCrypt.Net.BCrypt.HashPassword(newRefreshToken);
             student.RefreshTokenExpiresAt = DateTime.UtcNow.AddDays(7);
             student.RefreshTokenRevokedAt = null;
-            bool i = StudentAPIBusinessLayer.Student.UpdateRefreshToken(student.Id, student.RefreshTokenHash, student.RefreshTokenExpiresAt);
+            bool i = await studentService.UpdateRefreshTokenAsync(student.Id, student.RefreshTokenHash, student.RefreshTokenExpiresAt);
 
 
             return Ok(new TokenResponse
@@ -206,9 +207,9 @@ namespace StudentApi.Controllers
 
         //Logout Endpoint
         [HttpPost("logout")]
-        public IActionResult Logout([FromBody] StudentAPIBusinessLayer.DTOs.Auth.LogoutRequest request)
+        public async Task<IActionResult> LogoutAsync([FromBody] StudentAPIBusinessLayer.DTOs.Auth.LogoutRequest request)
         {
-            var student = StudentAPIBusinessLayer.Student.Login(request.Email);
+            var student = await studentService.LoginAsync(request.Email);
 
             if (student == null)
                 return Ok(); // Do not reveal if user exists
@@ -218,7 +219,9 @@ namespace StudentApi.Controllers
                 return Ok();
 
             student.RefreshTokenRevokedAt = DateTime.UtcNow;
-            StudentAPIBusinessLayer.Student.UpdateRefreshToken(student.Id, student.RefreshTokenHash, student.RefreshTokenExpiresAt);
+         bool success=await studentService.UpdateRefreshTokenAsync(student.Id, student.RefreshTokenHash, student.RefreshTokenExpiresAt);
+            if (!success)
+                return StatusCode(500);
             return Ok("Logged out successfully");
         }
 
