@@ -38,6 +38,7 @@ builder.Services.Configure<JwtOptions>(options =>
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
+      
         // TokenValidationParameters define what "valid token" means for this API.
         options.TokenValidationParameters = new TokenValidationParameters
         {
@@ -59,10 +60,13 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             // Must match the audience used when generating the JWT in the login endpoint.
             ValidAudience = "StudentApiUsers",
 
+           
             // The symmetric secret key used to validate the token signature.
             // This MUST be the same key used to sign tokens during login.
             IssuerSigningKey = new SymmetricSecurityKey(
                 Encoding.UTF8.GetBytes(secretKey))
+
+
         }; 
     });
 
@@ -231,3 +235,5 @@ app.MapControllers();
 
 // Start the web application.
 app.Run();
+
+public partial class Program { }
