@@ -15,12 +15,12 @@ namespace StudentDataAccessLayer.Interface
 
         Task<StudentLoginDTO?> LoginAsync(string email);
 
-      Task< bool> UpdateRefreshTokenAsync(
-            int studentId,
-            string refreshTokenHash,
-            DateTime? expiresAt);
-
-       Task< List<StudentDTO> > GetAllStudentsAsync();
+        Task<bool> UpdateRefreshTokenAsync(
+           int studentId,
+           string? refreshTokenHash,
+           DateTime? expiresAt,
+           DateTime? revokedAt);
+        Task< List<StudentDTO> > GetAllStudentsAsync();
 
        Task< List<StudentDTO>> GetPassedStudentsAsync();
 

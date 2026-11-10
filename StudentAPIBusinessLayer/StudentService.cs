@@ -60,14 +60,16 @@ namespace StudentAPIBusinessLayer
 
         // Update Refresh Token
         public async Task<bool> UpdateRefreshTokenAsync(
-            int studentId,
-            string refreshTokenHash,
-            DateTime? expiresAt)
+    int studentId,
+    string? refreshTokenHash,
+    DateTime? expiresAt,
+    DateTime? revokedAt)
         {
             return await studentData.UpdateRefreshTokenAsync(
                 studentId,
                 refreshTokenHash,
-                expiresAt);
+                expiresAt,
+                revokedAt);
         }
 
         // Get All Students

@@ -108,9 +108,14 @@ namespace StudentApi.Controllers
             student.RefreshTokenExpiresAt = DateTime.UtcNow.AddDays(7);
             student.RefreshTokenRevokedAt = null;
 
-         bool success= await  studentService.UpdateRefreshTokenAsync(student.Id, student.RefreshTokenHash, student.RefreshTokenExpiresAt);
+            bool success = await studentService.UpdateRefreshTokenAsync(
+     student.Id,
+     student.RefreshTokenHash,
+     student.RefreshTokenExpiresAt,
+     null);
 
-            if(!success)
+
+            if (!success)
                 return StatusCode(500);
 
             // Step 7: Return the serialized JWT token to the client.
@@ -198,8 +203,12 @@ namespace StudentApi.Controllers
             student.RefreshTokenHash = BCrypt.Net.BCrypt.HashPassword(newRefreshToken);
             student.RefreshTokenExpiresAt = DateTime.UtcNow.AddDays(7);
             student.RefreshTokenRevokedAt = null;
-            bool success = await studentService.UpdateRefreshTokenAsync(student.Id, student.RefreshTokenHash, student.RefreshTokenExpiresAt);
-            if(!success)
+            bool success = await studentService.UpdateRefreshTokenAsync(
+     student.Id,
+     student.RefreshTokenHash,
+     student.RefreshTokenExpiresAt,
+     null);
+            if (!success)
                 return StatusCode(500);
 
             return Ok(new TokenResponse
@@ -223,7 +232,11 @@ namespace StudentApi.Controllers
                 return Ok();
 
             student.RefreshTokenRevokedAt = DateTime.UtcNow;
-         bool success=await studentService.UpdateRefreshTokenAsync(student.Id, student.RefreshTokenHash, student.RefreshTokenExpiresAt);
+            bool success = await studentService.UpdateRefreshTokenAsync(
+     student.Id,
+     null,
+     null,
+     DateTime.UtcNow);
             if (!success)
                 return StatusCode(500);
             return Ok("Logged out successfully");

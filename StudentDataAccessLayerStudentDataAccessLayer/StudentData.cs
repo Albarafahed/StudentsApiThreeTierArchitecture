@@ -269,18 +269,35 @@ namespace StudentDataAccessLayer
             }
         }
 
-        public async Task<  bool> UpdateRefreshTokenAsync(int studentId, string refreshTokenHash, DateTime? expiresAt)
+        public async Task<bool> UpdateRefreshTokenAsync(
+            int studentId,
+            string? refreshTokenHash,
+            DateTime? expiresAt,
+            DateTime? revokedAt)
         {
             using (var connection = new SqlConnection(_connectionString))
             using (var command = new SqlCommand("SP_UpdateRefreshToken", connection))
             {
                 command.CommandType = CommandType.StoredProcedure;
-                command.Parameters.AddWithValue("@StudentId", studentId);
-                command.Parameters.AddWithValue("@RefreshTokenHash", refreshTokenHash);
-                command.Parameters.AddWithValue("@ExpiresAt", expiresAt);
-               await connection.OpenAsync();
-                int rowsAffected = await command.ExecuteNonQueryAsync();
-                return rowsAffected > 0;
+
+                command.Parameters.Add("@StudentId", SqlDbType.Int).Value = studentId;
+
+                command.Parameters.Add("@RefreshTokenHash", SqlDbType.NVarChar, 255)
+                    .Value = (object?)refreshTokenHash ?? DBNull.Value;
+
+                command.Parameters.Add("@ExpiresAt", SqlDbType.DateTime2)
+                    .Value = (object?)expiresAt ?? DBNull.Value;
+
+                command.Parameters.Add("@RevokedAt", SqlDbType.DateTime2)
+                    .Value = (object?)revokedAt ?? DBNull.Value;
+
+                await connection.OpenAsync();
+
+                object? result = await command.ExecuteScalarAsync();
+
+                return result != null &&
+                       result != DBNull.Value &&
+                       Convert.ToInt32(result) > 0;
             }
         }
     }

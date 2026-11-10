@@ -13,11 +13,12 @@ namespace StudentAPIBusinessLayer.Interface
        Task<StudentDTO?> SaveAsync(StudentDTO studentDTO, StudentMode mode = StudentMode.AddNew);
        Task< StudentDTO?> FindAsync(int studentId);
        Task< StudentLoginDTO?> LoginAsync(string email);
-       Task< bool> UpdateRefreshTokenAsync(
-           int studentId,
-           string refreshTokenHash,
-           DateTime? expiresAt);
-       Task<List<StudentDTO>> GetAllStudentsAsync();
+        Task<bool> UpdateRefreshTokenAsync(
+      int studentId,
+      string? refreshTokenHash,
+      DateTime? expiresAt,
+      DateTime? revokedAt);
+        Task<List<StudentDTO>> GetAllStudentsAsync();
         Task<List<StudentDTO>> GetPassedStudentsAsync();
        Task< bool> DeleteStudentAsync(int studentId);
        Task< double> GetAverageGradeAsync();
